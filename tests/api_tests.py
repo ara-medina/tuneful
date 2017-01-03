@@ -91,7 +91,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.mimetype, "application/json")
 
-        post = json.loads(response.data.decode("ascii"))
+        song = json.loads(response.data.decode("ascii"))
         self.assertEqual(songA["file.name"], "Example Song B")
 
     def test_get_non_existent_song(self):
@@ -102,7 +102,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(response.mimetype, "application/json")
 
         data = json.loads(response.data.decode("ascii"))
-        self.assertEqual(data["message"], "Could not find post with id 1")
+        self.assertEqual(data["message"], "Could not find song with id 1")
         
     def test_unsupported_accept_header(self):
         response = self.client.get("/api/songs", headers=[("Accept", "application/xml")])
@@ -113,7 +113,7 @@ class TestAPI(unittest.TestCase):
         data = json.loads(response.data.decode("ascii"))
         self.assertEqual(data["message"], "Request must accept application/json data")
         
-    def test_delete_post(self):
+    def test_delete_song(self):
         """ Deleting a single song from a populated database """
         songA = Song()
         songA.file.name = "Example Song A"
