@@ -13,7 +13,9 @@ os.environ["CONFIG_PATH"] = "tuneful.config.TestingConfig"
 from tuneful import app
 from tuneful import models
 from tuneful.utils import upload_path
-from tuneful.database import Base, engine, session
+from tuneful.database import Base, engine, session, Song, File
+
+
 
 class TestAPI(unittest.TestCase):
     """ Tests for the tuneful API """
@@ -37,4 +39,38 @@ class TestAPI(unittest.TestCase):
         # Delete test upload folder
         shutil.rmtree(upload_path())
 
+    def test_get_empty_songs(self):
+        """ Getting songs from an empty db """
+        response = self.client.get("/api/songs", headers=[("Accept", "application/json")])
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/json")
+        
+        data = json.loads(response.data.decode("ascii"))
+        self.assertEqual(data, [])
+        
+    def test_get_songs(self):
+        """ Getting songs from a populated db"""
+        songA = Song()
+        songA.file.name = "Example Song A"
+        
+        songB = Song()
+        songB.file.name = "Example Song B"
+        
+        session.add_all([songA, songB])
+        session.commit()
+        
+        response = self.client.get("/api/songs", headers=[("Accept", "application/json")])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/json")
+
+        data = json.loads(response.data.decode("ascii"))
+        self.assertEqual(len(data), 2)
+        
+        songA = data[0]
+        self.assertEqual(songA["file.name"], "Example Song A")
+
+        songB = data[1]
+        self.assertEqual(songB["file.name"], "Example Song B")
 

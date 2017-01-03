@@ -48,5 +48,54 @@ def songs_post():
     song = Song(name=data["file.name"], file_id=data["file.id"])
     session.add(song)
     session.commit()
+
+@app.route("/api/song/<int:id>", methods=["GET"])
+def song_get(id):
+    """ Single song endpoint """
+    song = session.query(Song).get(id)
+     
+    if not song:
+        message = "Could not find song with id {}".format(id)
+        data = json.dumps({"message": message})
+        return Response(data, 404, mimetype="application/json")
+        
+    data = json.dumps(song.as_dictionary())
+    return Response(data, 200, mimetype="application/json")
     
+@app.route("/api/songs/<id>")
+def songs_edit(id):
+    """Edit a song"""
+    data = request.json
+    
+    try: 
+        validate(data, song_schema)
+    except ValidationError as error:
+        data = {"message": error.message}
+        return Response(json.dumps(data), 422, mimetype="application/json")
+        
+    song = session.query(Song).get(id)
+    song.name = data["file.name"]
+    song.file_id = data["file.id"]
+    
+    session.commit()
+    
+    data = json.dumps(song.as_dictionary())
+    headers = {"Location": url_for(song_get, id=song.id)}
+    return Response(data, 201, headers=headers, mimetype="application/json")
+
+@app.route("/api/songs/<int:id>", methods=["DELETE"])
+def song_delete(id):
+    """ Delete a single song """
+    song = session.query(Song).get(id)
+    
+    if not song:
+        message = "Could not find song with id {}".format(id)
+        data = json.dumps({"message": message})
+        return Response(data, 404, mimetype="application/json")
+        
+    session.delete(song)
+    session.commit()
+    
+    data = json.dumps([])
+    return Response(data, 200, mimetype="application/json")
     
