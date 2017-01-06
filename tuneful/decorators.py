@@ -27,7 +27,7 @@ def require(mimetype):
         """
         @wraps(func)
         def wrapper(*args, **kwargs):
-            if (request.mimetype ==  mimetype):
+            if (request.mimetype == mimetype):
                 return func(*args, **kwargs)
             message = "Request must contain {} data".format(mimetype)
             data = json.dumps({"message": message})

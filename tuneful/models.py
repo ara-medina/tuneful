@@ -13,14 +13,15 @@ class File(Base):
     __tablename__ = "file"
     
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
+    filename = Column(String, nullable=False)
     
     song = relationship("Song", uselist=False, backref="file")
     
     def as_dictionary(self):
-        file = {
+        return {
             "id": self.id,
-            "name": self.name,
+            "filename": self.filename,
+            "path": url_for("uploaded_file", filename=self.filename)
         }
         
 class Song(Base):
@@ -28,20 +29,20 @@ class Song(Base):
     
     id = Column(Integer, primary_key=True)
     
-    file_id = Column(Integer, ForeignKey="file.id", nullable=False)
+    file_id = Column(Integer, ForeignKey("file.id"), nullable=False)
     
     def as_dictionary(self):
-        song = {
+        return {
             "id": self.id,
             "file": {
                 "id": self.file.id,
-                "name": self.file.name
+                "name": self.file.filename
             }
         }
         
         
     # file.song.id 
     # song.file.id
-    # song.file.name
+    # song.file.filename
     # song.id
     # file.id

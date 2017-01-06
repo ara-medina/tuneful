@@ -13,30 +13,37 @@ from .models import Song, File
 from .utils import upload_path
 
 
+
 song_schema = {
     "properties": {
         "file": {
-            "id": {"type": "int"},
-            "name": {"type": "string"}
+            "type": "object",
+            "properties": {
+                "id" : {
+                    "type": "integer"
+                }
+            }
         }
     }
 }
 
-
-@app.route("/api/songs", methods=["GET"])
-def songs_get():
-    """Get a list of songs as JSON"""
+# add tests for this 
+@app.route("api/songs", methods=["GET"])
+@decorators.accept("application/json")
+def song_get():
+    """Get a list of songs"""
     
-    songs = session.query(Song).all()
+    songs = session.query(Song)
     songs = songs.order_by(Song.id)
     
     data = json.dumps([song.as_dictionary() for song in songs])
     return Response(data, 200, mimetype="application/json")
-    
-@app.route("/api/songs", methods=["POST"])
-def songs_post():
-    """Add a new song to the db"""
-    
+
+#add tests for this
+@app.route("api/songs", methods=["POST"])
+@decorators.accept("application/json")
+def song_post():
+    """Add a new song"""
     data = request.json
     
     try: 
@@ -45,57 +52,34 @@ def songs_post():
         data = {"message": error.message}
         return Response(json.dumps(data), 422, mimetype="application/json")
         
-    song = Song(name=data["file.name"], file_id=data["file.id"])
+    song = Song(filename=data["file"]["filename"])
     session.add(song)
     session.commit()
-
-@app.route("/api/song/<int:id>", methods=["GET"])
-def song_get(id):
-    """ Single song endpoint """
-    song = session.query(Song).get(id)
-     
-    if not song:
-        message = "Could not find song with id {}".format(id)
-        data = json.dumps({"message": message})
-        return Response(data, 404, mimetype="application/json")
-        
+    
     data = json.dumps(song.as_dictionary())
-    return Response(data, 200, mimetype="application/json")
+    return Response(data, 201, mimetype="application/json")
     
-@app.route("/api/songs/<id>")
-def songs_edit(id):
-    """Edit a song"""
-    data = request.json
+@app.route("/uploads/<filename>", methods=["GET"])
+def uploaded_file(filename):
+    """Retrieve files"""
+    return send_from_directory(upload_path(), filename)
     
-    try: 
-        validate(data, song_schema)
-    except ValidationError as error:
-        data = {"message": error.message}
+@app.route("/api/files", methods=["POST"])
+@decorators.require("multipart/form-data")
+@decorators.accept("application/json")
+def file_post():
+    file = request.files.get("file")
+    if not file:
+        data = {"message": "Could not find file data"}
         return Response(json.dumps(data), 422, mimetype="application/json")
-        
-    song = session.query(Song).get(id)
-    song.name = data["file.name"]
-    song.file_id = data["file.id"]
-    
-    session.commit()
-    
-    data = json.dumps(song.as_dictionary())
-    headers = {"Location": url_for(song_get, id=song.id)}
-    return Response(data, 201, headers=headers, mimetype="application/json")
 
-@app.route("/api/songs/<int:id>", methods=["DELETE"])
-def song_delete(id):
-    """ Delete a single song """
-    song = session.query(Song).get(id)
-    
-    if not song:
-        message = "Could not find song with id {}".format(id)
-        data = json.dumps({"message": message})
-        return Response(data, 404, mimetype="application/json")
-        
-    session.delete(song)
+    filename = secure_filename(file.filename)
+    db_file = models.File(filename=filename)
+    session.add(db_file)
     session.commit()
+    file.save(upload_path(filename))
+
+    data = db_file.as_dictionary()
+    return Response(json.dumps(data), 201, mimetype="application/json")
     
-    data = json.dumps([])
-    return Response(data, 200, mimetype="application/json")
     
